@@ -68,14 +68,17 @@ def get_predictions(model_choice, X, y):
             y_true = y.iloc[window:]
             return y_true, y_pred
     except FileNotFoundError as e:
-        st.error(f"Model file not found: {e.filename}. Please train the models first.")
+        st.error(f"Model file not found: `{e.filename}`. Please ensure you have trained the models.")
+        st.info("To train the models, run the scripts in the `src/` directory, for example:")
+        st.code("python src/logistic_model.py")
+        st.info("Also, ensure you have downloaded the data by running `python src/download_kaggle.py` and renamed the CSV to `data/historical.csv`.")
         return None, None
 
 def plot_predictions(y_true, y_pred):
     """Plots the actual vs. predicted directions."""
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=y_true.index, y=y_true, mode='lines', name='Actual Direction', line=dict(color='royalblue', width=2)))
-    fig.add_trace(go.Scatter(x=y_true.index, y=y_pred, mode='lines', name='Predicted Direction', line=dict(color='firebrick', width=2, dash='dash')))
+    fig = go.Figure() # The x and y axes are already correctly set by y_true.index and y_true/y_pred values.
+    fig.add_trace(go.Scatter(x=y_true.index, y=y_true, mode='lines+markers', name='Actual Direction', line=dict(color='royalblue', width=1), marker=dict(size=4)))
+    fig.add_trace(go.Scatter(x=y_true.index, y=y_pred, mode='lines+markers', name='Predicted Direction', line=dict(color='firebrick', width=1, dash='dash'), marker=dict(size=4)))
     fig.update_layout(title='📊 Actual vs Predicted Stock Direction', xaxis_title='Date', yaxis_title='Direction (0 = Down, 1 = Up)')
     st.plotly_chart(fig, use_container_width=True)
 
