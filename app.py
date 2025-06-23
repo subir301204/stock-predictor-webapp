@@ -75,11 +75,26 @@ def get_predictions(model_choice, X, y):
         return None, None
 
 def plot_predictions(y_true, y_pred):
-    """Plots the actual vs. predicted directions."""
-    fig = go.Figure() # The x and y axes are already correctly set by y_true.index and y_true/y_pred values.
-    fig.add_trace(go.Scatter(x=y_true.index, y=y_true, mode='lines+markers', name='Actual Direction', line=dict(color='royalblue', width=1), marker=dict(size=4)))
-    fig.add_trace(go.Scatter(x=y_true.index, y=y_pred, mode='lines+markers', name='Predicted Direction', line=dict(color='firebrick', width=1, dash='dash'), marker=dict(size=4)))
-    fig.update_layout(title='📊 Actual vs Predicted Stock Direction', xaxis_title='Date', yaxis_title='Direction (0 = Down, 1 = Up)')
+    """Plots the actual vs. predicted directions as line graphs with zoom support."""
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=y_true.index, y=y_true,
+        mode='lines',
+        name='Actual Direction',
+        line=dict(color='royalblue', width=2)
+    ))
+    fig.add_trace(go.Scatter(
+        x=y_true.index, y=y_pred,
+        mode='lines',
+        name='Predicted Direction',
+        line=dict(color='firebrick', width=2, dash='dash')
+    ))
+    fig.update_layout(
+        title='📊 Actual vs Predicted Stock Direction',
+        xaxis_title='Date',
+        yaxis_title='Direction (0 = Down, 1 = Up)',
+        xaxis_rangeslider_visible=True  # Enable zoom/scroll
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_historical_data(df):
@@ -108,7 +123,14 @@ if raw_df is not None:
     model_choice = st.selectbox("🧠 Choose prediction model", ["Logistic Regression", "Random Forest", "LSTM"])
 
     if st.button("🔮 Predict"):
-        y_true, y_pred = get_predictions(model_choice, X, y)
+        with st.spinner("Predicting..."):
+            y_true, y_pred = get_predictions(model_choice, X, y)
         if y_true is not None and y_pred is not None:
             plot_predictions(y_true, y_pred)
-            st.success("Prediction completed!")
+            # Calculate prediction accuracy
+            accuracy = (y_true.values == y_pred).mean()
+            st.success(f"Prediction Accuracy: {accuracy:.2%}")
+            # Show last prediction direction
+            last_pred = y_pred[-1]
+            direction = "Up 📈" if last_pred == 1 else "Down 📉"
+            st.info(f"The model predicts the next direction will be: **{direction}**")
