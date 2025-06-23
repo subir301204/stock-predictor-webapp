@@ -21,7 +21,7 @@ MODEL_PATHS = {
 
 @st.cache_data
 def load_data(uploaded_file):
-    """Loads data from an uploaded file or a default path and creates features."""
+    """Loads data from an uploaded file or a default path."""
     if uploaded_file is not None:
         try:
             # Corrected 'Data' to 'Date' to match default and common usage
@@ -36,8 +36,7 @@ def load_data(uploaded_file):
             return None
         df = pd.read_csv(default_path, parse_dates=['Date'])
         st.info(f"Using default data from '{default_path}'.")
-    
-    return create_features(df)
+    return df
 
 def get_predictions(model_choice, X, y):
     """Loads the selected model and returns predictions."""
@@ -80,12 +79,29 @@ def plot_predictions(y_true, y_pred):
     fig.update_layout(title='📊 Actual vs Predicted Stock Direction', xaxis_title='Date', yaxis_title='Direction (0 = Down, 1 = Up)')
     st.plotly_chart(fig, use_container_width=True)
 
-uploaded_file = st.file_uploader("📥 Upload historical stock data (.csv)", type=["csv"])
-df = load_data(uploaded_file)
+def plot_historical_data(df):
+    """Plots the historical closing price of the stock as a line graph."""
+    st.subheader("Historical Data")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df['Date'], y=df['Close'], mode='lines', name='Close Price', line=dict(color='cyan')))
+    fig.update_layout(
+        title='📈 Historical Stock Closing Price',
+        xaxis_title='Date',
+        yaxis_title='Price',
+        xaxis_rangeslider_visible=True
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-if df is not None:
-    X = df[['return', 'SMA5', 'SMA10']]
-    y = df['Direction']
+uploaded_file = st.file_uploader("📥 Upload historical stock data (.csv)", type=["csv"])
+raw_df = load_data(uploaded_file)
+
+if raw_df is not None:
+    plot_historical_data(raw_df)
+
+    st.subheader("Model Prediction")
+    processed_df = create_features(raw_df.copy())
+    X = processed_df[['return', 'SMA5', 'SMA10']]
+    y = processed_df['Direction']
     model_choice = st.selectbox("🧠 Choose prediction model", ["Logistic Regression", "Random Forest", "LSTM"])
 
     if st.button("🔮 Predict"):
