@@ -13,64 +13,64 @@ st.title("📈 Stock Market Direction Predictor (AI/ML)")
 st.write("Upload historical stock data and choose a model to predict whether the stock will go **Up** or **DOWN**.")
 
 MODEL_PATHS = {
-          "Logistic Regression": "outputs/models/logistic.pkl",
-          "Random Forest": "outputs/models/rf.pkl",
-          "LSTM": "outputs/models/lstm.h5",
-          "LSTM_SCALER": "outputs/models/lstm_scaler.pkl"
+    "Logistic Regression": "outputs/models/logistic.pkl",
+    "Random Forest": "outputs/models/rf.pkl",
+    "LSTM": "outputs/models/lstm.h5",
+    "LSTM_SCALER": "outputs/models/lstm_scaler.pkl"
 }
 
 @st.cache_data
 def load_data(uploaded_file):
-          """Loads data from an uploaded file or a default path and creates features."""
-          if uploaded_file is not None:
-                    try:
-                              # Corrected 'Data' to 'Date' to match default and common usage
-                              df = pd.read_csv(uploaded_file, parse_dates=['Date'])
-                    except (ValueError, KeyError):
-                              st.error("The uploaded CSV must contain a 'Date' column. Please check the file.")
-                              return None
-          else:
-                    default_path = "data/historical.csv"
-                    if not os.path.exists(default_path):
-                              st.error(f"Default data file not found at '{default_path}'. Please upload a file.")
-                              return None
-                    df = pd.read_csv(default_path, parse_dates=['Date'])
-                    st.info(f"Using default data from '{default_path}'.")
+    """Loads data from an uploaded file or a default path and creates features."""
+    if uploaded_file is not None:
+        try:
+            # Corrected 'Data' to 'Date' to match default and common usage
+            df = pd.read_csv(uploaded_file, parse_dates=['Date'])
+        except (ValueError, KeyError):
+            st.error("The uploaded CSV must contain a 'Date' column. Please check the file.")
+            return None
+    else:
+        default_path = "data/historical.csv"
+        if not os.path.exists(default_path):
+            st.error(f"Default data file not found at '{default_path}'. Please upload a file.")
+            return None
+        df = pd.read_csv(default_path, parse_dates=['Date'])
+        st.info(f"Using default data from '{default_path}'.")
+    
+    return create_features(df)
 
-          return create_features(df)
-          
 def get_predictions(model_choice, X, y):
-          """Loads the selected model and returns predictions."""
-          try:
-                    if model_choice == "Logistic Regression":
-                              model = joblib.load(MODEL_PATHS["Logistic Regression"])
-                              y_pred = model.predict(X)
-                              return y, y_pred
-                    
-                    elif model_choice == "Random Forest":
-                              model = joblib.load(MODEL_PATHS["Random Forest"])
-                              y_pred = model.predict(X)
-                              return y, y_pred
-                    
-                    elif model_choice == "LSTM":
-                              model = load_model(MODEL_PATHS["LSTM"])
-                              scaler = joblib.load(MODEL_PATHS["LSTM_SCALER"])
-                              X_scaled = scaler.transform(X)
-                              
-                              X_seq = []
-                              window = 10
-                              for i in range(window, len(X_scaled)):
-                                        X_seq.append(X_scaled[i-window:i])
-                              X_seq = np.array(X_seq)
+    """Loads the selected model and returns predictions."""
+    try:
+        if model_choice == "Logistic Regression":
+            model = joblib.load(MODEL_PATHS["Logistic Regression"])
+            y_pred = model.predict(X)
+            return y, y_pred
+        
+        elif model_choice == "Random Forest":
+            model = joblib.load(MODEL_PATHS["Random Forest"])
+            y_pred = model.predict(X)
+            return y, y_pred
+        
+        elif model_choice == "LSTM":
+            model = load_model(MODEL_PATHS["LSTM"])
+            scaler = joblib.load(MODEL_PATHS["LSTM_SCALER"])
+            X_scaled = scaler.transform(X)
 
-                              y_pred_raw = model.predict(X_seq)
-                              y_pred = (y_pred_raw > 0.5).astype(int).flatten()
-                              # Align y_true with the predictions by removing the window period
-                              y_true = y.iloc[window:]
-                              return y_true, y_pred
-          except FileNotFoundError as e:
-                    st.error(f"Model file not found: {e.filename}. Please train the models first.")
-                    return None, None
+            X_seq = []
+            window = 10
+            for i in range(window, len(X_scaled)):
+                X_seq.append(X_scaled[i-window:i])
+            X_seq = np.array(X_seq)
+            
+            y_pred_raw = model.predict(X_seq)
+            y_pred = (y_pred_raw > 0.5).astype(int).flatten()
+            # Align y_true with the predictions by removing the window period
+            y_true = y.iloc[window:]
+            return y_true, y_pred
+    except FileNotFoundError as e:
+        st.error(f"Model file not found: {e.filename}. Please train the models first.")
+        return None, None
 
 def plot_predictions(y_true, y_pred):
     """Plots the actual vs. predicted directions."""
